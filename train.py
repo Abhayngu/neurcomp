@@ -68,16 +68,30 @@ if __name__=='__main__':
     device = 'cuda' if opt.cuda else 'cpu'
 
     # volume
-    np_volume = np.load(opt.volume).astype(np.float32)
-    volume = th.from_numpy(np_volume)
-    print('volume exts',th.min(volume),th.max(volume))
 
+    # Loading data
+    np_volume = np.load(opt.volume).astype(np.float32)
+
+    # converting into tensor
+    volume = th.from_numpy(np_volume)
+
+    print('volume exts',th.min(volume),th.max(volume))
+    print('shape of volume : ', volume.shape)
+
+    # Getting total number of points in the volume data
     vol_res = th.prod(th.tensor([val for val in volume.shape])).item()
 
+    # Computing minimum and maximum value in the data
     raw_min = th.tensor([th.min(volume)],dtype=volume.dtype)
     raw_max = th.tensor([th.max(volume)],dtype=volume.dtype)
-    volume = 2.0*((volume-raw_min)/(raw_max-raw_min)-0.5)
 
+    print('before normalization : ',th.min(volume),th.max(volume))
+    
+    # Normalizing the scalar value to [-1, 1]
+    volume = 2.0*((volume-raw_min)/(raw_max-raw_min)-0.5)
+    print('After normalization : ',th.min(volume),th.max(volume)) 
+
+    # Computing number of neurons in each hidden layer
     opt.neurons = compute_num_neurons(opt,int(vol_res/opt.compression_ratio))
     opt.layers = []
     for idx in range(opt.n_layers):
@@ -136,106 +150,107 @@ if __name__=='__main__':
     v,v_res,global_min_bb,global_max_bb,dataset = create_data_loading()
     data_loader = DataLoader(dataset, batch_size=opt.batchSize, shuffle=True, num_workers=int(opt.num_workers))
 
-    while True:
-        all_losses = []
-        epoch_tick = time.time()
+    # while True:
+    #     all_losses = []
+    #     epoch_tick = time.time()
 
-        for bdx, data in enumerate(data_loader):
-            n_iter+=1
+    #     for bdx, data in enumerate(data_loader):
+    #         n_iter+=1
 
-            raw_positions, positions = data
-            if opt.cuda:
-                raw_positions = raw_positions.cuda()
-                positions = positions.cuda()
-            #
+    #         raw_positions, positions = data
+    #         if opt.cuda:
+    #             raw_positions = raw_positions.cuda()
+    #             positions = positions.cuda()
+    #         #
 
-            raw_positions = raw_positions.view(-1,3)
-            positions = positions.view(-1,3)
-            if opt.grad_lambda > 0 or bdx%100==0:
-                positions.requires_grad = True
+    #         raw_positions = raw_positions.view(-1,3)
+    #         positions = positions.view(-1,3)
+    #         if opt.grad_lambda > 0 or bdx%100==0:
+    #             positions.requires_grad = True
 
-            # --- in practice, since we only sample values at grid points, this is not really performing interpolation; but, the option is there...
-            field = trilinear_f_interpolation(raw_positions,v,global_min_bb,global_max_bb,v_res)
+    #         # --- in practice, since we only sample values at grid points, this is not really performing interpolation; but, the option is there...
+    #         field = trilinear_f_interpolation(raw_positions,v,global_min_bb,global_max_bb,v_res)
 
-            # predicted volume
-            net.zero_grad()
-            predicted_vol = net(positions)
-            predicted_vol = predicted_vol.squeeze(-1)
+    #         # predicted volume
+    #         net.zero_grad()
+    #         predicted_vol = net(positions)
+    #         predicted_vol = predicted_vol.squeeze(-1)
 
-            if opt.grad_lambda > 0:
-                target_grad = finite_difference_trilinear_grad(raw_positions,v,global_min_bb,global_max_bb,v_res,scale=dataset.scales)
-                ones = th.ones_like(predicted_vol)
-                vol_grad = th.autograd.grad(outputs=predicted_vol, inputs=positions, grad_outputs=ones, retain_graph=True, create_graph=True, allow_unused=False)[0]
-                grad_loss = criterion(vol_grad,target_grad)
-            #
+    #         if opt.grad_lambda > 0:
+    #             target_grad = finite_difference_trilinear_grad(raw_positions,v,global_min_bb,global_max_bb,v_res,scale=dataset.scales)
+    #             ones = th.ones_like(predicted_vol)
+    #             vol_grad = th.autograd.grad(outputs=predicted_vol, inputs=positions, grad_outputs=ones, retain_graph=True, create_graph=True, allow_unused=False)[0]
+    #             grad_loss = criterion(vol_grad,target_grad)
+    #         #
 
-            n_prior_volume_passes = int(n_seen/vol_res)
+    #         n_prior_volume_passes = int(n_seen/vol_res)
 
-            vol_loss = criterion(predicted_vol,field)
-            n_seen += field.view(-1).shape[0]
+    #         vol_loss = criterion(predicted_vol,field)
+    #         n_seen += field.view(-1).shape[0]
 
-            if bdx%100==0:
-                if opt.grad_lambda == 0:
-                    target_grad = finite_difference_trilinear_grad(raw_positions,v,global_min_bb,global_max_bb,v_res,scale=dataset.scales)
-                    ones = th.ones_like(predicted_vol)
-                    vol_grad = th.autograd.grad(outputs=predicted_vol, inputs=positions, grad_outputs=ones, retain_graph=True, create_graph=True, allow_unused=False)[0]
-                    grad_loss = criterion(vol_grad,target_grad)
-                #
+    #         if bdx%100==0:
+    #             if opt.grad_lambda == 0:
+    #                 target_grad = finite_difference_trilinear_grad(raw_positions,v,global_min_bb,global_max_bb,v_res,scale=dataset.scales)
+    #                 ones = th.ones_like(predicted_vol)
+    #                 vol_grad = th.autograd.grad(outputs=predicted_vol, inputs=positions, grad_outputs=ones, retain_graph=True, create_graph=True, allow_unused=False)[0]
+    #                 grad_loss = criterion(vol_grad,target_grad)
+    #             #
 
-                tock = time.time()
-                print('loss[',(n_seen/vol_res),n_iter,']:',vol_loss.item(),'time:',(tock-tick))
-                print('grad loss',grad_loss.item(),'norms',th.norm(target_grad).item(),th.norm(vol_grad).item())
-                tick = tock
-            #
+    #             tock = time.time()
+    #             print('loss[',(n_seen/vol_res),n_iter,']:',vol_loss.item(),'time:',(tock-tick))
+    #             print('grad loss',grad_loss.item(),'norms',th.norm(target_grad).item(),th.norm(vol_grad).item())
+    #             tick = tock
+    #         #
 
-            full_loss = vol_loss
-            if opt.grad_lambda > 0:
-                full_loss += opt.grad_lambda*grad_loss
-            full_loss.backward()
-            optimizer.step()
+    #         full_loss = vol_loss
+    #         if opt.grad_lambda > 0:
+    #             full_loss += opt.grad_lambda*grad_loss
+    #         full_loss.backward()
+    #         optimizer.step()
 
-            all_losses.append(vol_loss.item())
+    #         all_losses.append(vol_loss.item())
 
-            n_current_volume_passes = int(n_seen/vol_res)
-            if n_prior_volume_passes != n_current_volume_passes and (n_current_volume_passes+1)%opt.pass_decay==0:
-                print('------ learning rate decay ------',n_current_volume_passes)
-                for param_group in optimizer.param_groups:
-                    param_group['lr'] *= opt.lr_decay
-                #
-            #
+    #         n_current_volume_passes = int(n_seen/vol_res)
+    #         if n_prior_volume_passes != n_current_volume_passes and (n_current_volume_passes+1)%opt.pass_decay==0:
+    #             print('------ learning rate decay ------',n_current_volume_passes)
+    #             for param_group in optimizer.param_groups:
+    #                 param_group['lr'] *= opt.lr_decay
+    #             #
+    #         #
 
-            if (n_current_volume_passes+1)==opt.n_passes:
-                break
-        #
+    #         if (n_current_volume_passes+1)==opt.n_passes:
+    #             break
+                
+    #     #
 
-        if (n_current_volume_passes+1)==opt.n_passes:
-            break
+    #     if (n_current_volume_passes+1)==opt.n_passes:
+    #         break
 
-        epoch_tock = time.time()
+    #     epoch_tock = time.time()
     #
 
-    last_tock = time.time()
+    # last_tock = time.time()
 
-    if opt.vol_debug:
-        tiled_net_out(dataset, net, opt.cuda, gt_vol=volume, evaluate=True, write_vols=True)
-    th.save(net.state_dict(), opt.network)
+    # if opt.vol_debug:
+    #     tiled_net_out(dataset, net, opt.cuda, gt_vol=volume, evaluate=True, write_vols=True)
+    # th.save(net.state_dict(), opt.network)
 
-    total_time = last_tock-first_tick
-    config = {}
-    config['grad_lambda'] = opt.grad_lambda
-    config['n_layers'] = opt.n_layers
-    config['layers'] = opt.layers
-    config['w0'] = opt.w0
-    config['compression_ratio'] = opt.compression_ratio
-    config['batchSize'] = opt.batchSize
-    config['oversample'] = opt.oversample
-    config['lr'] = opt.lr
-    config['n_passes'] = opt.n_passes
-    config['pass_decay'] = opt.pass_decay
-    config['lr_decay'] = opt.lr_decay
-    config['is_residual'] = opt.is_residual
-    config['is_cuda'] = opt.cuda
-    config['time'] = total_time
+    # total_time = last_tock-first_tick
+    # config = {}
+    # config['grad_lambda'] = opt.grad_lambda
+    # config['n_layers'] = opt.n_layers
+    # config['layers'] = opt.layers
+    # config['w0'] = opt.w0
+    # config['compression_ratio'] = opt.compression_ratio
+    # config['batchSize'] = opt.batchSize
+    # config['oversample'] = opt.oversample
+    # config['lr'] = opt.lr
+    # config['n_passes'] = opt.n_passes
+    # config['pass_decay'] = opt.pass_decay
+    # config['lr_decay'] = opt.lr_decay
+    # config['is_residual'] = opt.is_residual
+    # config['is_cuda'] = opt.cuda
+    # config['time'] = total_time
 
-    json.dump(config, open(opt.config,'w'))
+    # json.dump(config, open(opt.config,'w'))
 #

@@ -124,7 +124,7 @@ def compute_num_neurons(opt,target_size):
                     if is_shortcut:
                         n_params += (layer_in*layer_out)+layer_out
                     
-                    
+                    # doubt in the following two lines
                     n_params += (layer_in*og_layer_in)+og_layer_in
                     n_params += (og_layer_in*layer_out)+layer_out
 

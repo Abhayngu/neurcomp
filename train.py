@@ -64,7 +64,7 @@ if __name__=='__main__':
     parser.set_defaults(vol_debug=True)
 
     opt = parser.parse_args()
-    print(opt)
+    # print(opt)
     device = 'cuda' if opt.cuda else 'cpu'
 
     # volume
@@ -75,7 +75,7 @@ if __name__=='__main__':
     # converting into tensor
     volume = th.from_numpy(np_volume)
 
-    print('volume exts',th.min(volume),th.max(volume))
+    # print('volume exts',th.min(volume),th.max(volume))
     print('shape of volume : ', volume.shape)
 
     # Getting total number of points in the volume data
@@ -85,11 +85,11 @@ if __name__=='__main__':
     raw_min = th.tensor([th.min(volume)],dtype=volume.dtype)
     raw_max = th.tensor([th.max(volume)],dtype=volume.dtype)
 
-    print('before normalization : ',th.min(volume),th.max(volume))
+    # print('before normalization : ',th.min(volume),th.max(volume))
     
     # Normalizing the scalar value to [-1, 1]
     volume = 2.0*((volume-raw_min)/(raw_max-raw_min)-0.5)
-    print('After normalization : ',th.min(volume),th.max(volume)) 
+    # print('After normalization : ',th.min(volume),th.max(volume)) 
 
     # Computing number of neurons in each hidden layer
     opt.neurons = compute_num_neurons(opt,int(vol_res/opt.compression_ratio))
@@ -103,7 +103,7 @@ if __name__=='__main__':
     if opt.cuda:
         net.cuda()
     net.train()
-    print(net)
+    # print(net)
 
     # optimization
     optimizer = optim.Adam(net.parameters(), lr=opt.lr, betas=(0.9, 0.999))
@@ -227,7 +227,7 @@ if __name__=='__main__':
     #         break
 
     #     epoch_tock = time.time()
-    #
+    
 
     # last_tock = time.time()
 

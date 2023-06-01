@@ -44,13 +44,16 @@ class VolumeDataset(Dataset):
 
         # Tiling
         self.lattice = self.tile_sampling(self.min_bb,self.max_bb,res=self.vol_res,normalize=False)
-        # self.full_tiling = self.tile_sampling(self.min_bb,self.max_bb,res=self.vol_res,normalize=False).view(-1,3)
+        self.full_tiling = self.tile_sampling(self.min_bb,self.max_bb,res=self.vol_res,normalize=False).view(-1,3)
         
         # Number of voxels)
-        # self.actual_voxels = self.full_tiling.shape[0]
+        self.actual_voxels = self.full_tiling.shape[0]
 
         # Oversampling
         self.oversample = oversample
+        # print(th.randint(self.actual_voxels,(self.oversample,)))
+        random_positions = self.full_tiling[th.randint(self.actual_voxels,(self.oversample,))]
+        print(random_positions)
 
         # print('volume : ', volume.shape)
         # print('lattice shape : ', self.full_tiling.shape)
@@ -77,12 +80,11 @@ class VolumeDataset(Dataset):
         # print('size : ', positional_data[:, :, :, 0].shape)
 
         positional_data[:,:,:,0] = th.linspace(start[0],end[0],res[0],dtype=th.float).view(res[0],1,1)
-        print('1 : ', positional_data[:, :, :, 0])
+        # print('1 : ', positional_data[:, :, :, 0])
         positional_data[:,:,:,1] = th.linspace(start[1],end[1],res[1],dtype=th.float).view(1,res[1],1)
         # print('2 : ', positional_data)
         positional_data[:,:,:,2] = th.linspace(start[2],end[2],res[2],dtype=th.float).view(1,1,res[2])
         # print('3 : ', positional_data)
-
         return 2.0*positional_data - 1.0 if normalize else positional_data
     #
 
@@ -98,6 +100,7 @@ class VolumeDataset(Dataset):
 
     def __getitem__(self, index):
         random_positions = self.full_tiling[th.randint(self.actual_voxels,(self.oversample,))]
+        print(random_positions)
         normalized_positions = 2.0 * ( (random_positions - self.min_bb.unsqueeze(0)) / (self.max_bb-self.min_bb).unsqueeze(0) ) - 1.0
         normalized_positions = self.scales.unsqueeze(0)*normalized_positions
         return random_positions, normalized_positions

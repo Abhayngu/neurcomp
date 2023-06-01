@@ -20,8 +20,8 @@ class Network(nn.Module):
             out = self.relu(out)
         return out
     
-class MyData(Dataset, data):
-    def __init__(self):
+class MyData(Dataset):
+    def __init__(self, data):
         self.data = data
 
     def __len__(self):

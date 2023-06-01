@@ -6,6 +6,10 @@ import math
 from sampleclass import Network, MyData
 import torch.optim as optim
 from torch.utils.data import Dataset, DataLoader
+from utils import tiled_net_out
+from vtk import *
+
+
 
 vol = np.load('volumes/test_vol.npy')
 device = 'cuda' if torch.cuda.is_available else 'cpu'
@@ -17,23 +21,16 @@ raw_max = torch.tensor([torch.max(tvol)], dtype=tvol.dtype )
 normalizedVolume = 2.0*((tvol-raw_min)/(raw_max-raw_min)-0.5)
 
 net = Network(3, 1, 6)
-# print(net)
+print(net)
 bs = 2048
 loss = nn.MSELoss()
 optimizer = optim.Adam(net.parameters(), lr=5e-5, betas=(0.9, 0.999))
 dataset = MyData(normalizedVolume)
 dataloader = DataLoader(dataset=dataset, batch_size=bs, shuffle=True)
-#print(dataset[0])
-# print(resol/len(dataloader))
-# for i, (input, label) in enumerate(dataloader):
-#     print('i : ', i)
-#     # (x, y, z), val = data
-#     # print('x : ', x, ' y : ', y, ' z : ', z , ' val : ', val)
-#     # print(data.shape)
-#     print('input : ', input)
-#     print('label : ', label)
 
-n_epochs = 50
+print(normalizedVolume.shape)
+
+n_epochs = 2
 
 for i in range(n_epochs):
     net.train()
@@ -55,16 +52,20 @@ for i in range(n_epochs):
     print(f"epoch: {i} train loss: {train_loss.item() / bs} time: {round(end - start, 2)}")
         
 net.eval()
-# predict the entire volume and scale back to original
-predicted_volume = net(normalizedVolume)
+
+resizedVol = np.zeros(shape=(150*150*150, 3))
+ind = 0
+for i in range(150):
+    for j in range(150):
+        for k in range(150):
+            resizedVol[ind] = [i, j, k]
+            ind = ind + 1
+resizeTensor = torch.from_numpy(resizedVol)
+resizeTensor = torch.tensor(resizeTensor, dtype=torch.float)
 
 
-# n_epoch = 10
-# totalSamples = resol
-# itr = math.ceil(totalSamples/bs)
-# print('Total iterations : ', itr)
 
-# for epoch in range(n_epoch):
-#     for i, data in enumerate(dataloader):
-#         (x, y, z), val = data
-        
+predicted_volume = net(resizeTensor)
+print(predicted_volume)
+
+torch.save(net, 'model.pth')

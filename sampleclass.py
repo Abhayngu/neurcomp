@@ -22,7 +22,7 @@ class Network(nn.Module):
     
 class MyData(Dataset, data):
     def __init__(self):
-        pass
+        self.data = data
 
     def __len__(self):
         return torch.prod(torch.tensor([i for i in self.data.shape])).item()

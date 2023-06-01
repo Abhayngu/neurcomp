@@ -20,17 +20,27 @@ raw_min = torch.tensor([torch.min(tvol)], dtype=tvol.dtype )
 raw_max = torch.tensor([torch.max(tvol)], dtype=tvol.dtype )
 normalizedVolume = 2.0*((tvol-raw_min)/(raw_max-raw_min)-0.5)
 
-net = Network(3, 1, 6)
+vol2 = np.zeros(shape=(150*150*150, 4))
+ind = 0
+for i in range(150):
+    for j in range(150):
+        for k in range(150):
+            vol2[ind] = [i, j, k, normalizedVolume[i, j, k]]
+            ind = ind + 1
+tensorData = torch.from_numpy(vol2)
+tensorData = torch.tensor(tensorData, dtype=torch.float)
+
+net = Network(3, 1, 3)
 print(net)
 bs = 2048
 loss = nn.MSELoss()
 optimizer = optim.Adam(net.parameters(), lr=5e-5, betas=(0.9, 0.999))
-dataset = MyData(normalizedVolume)
+dataset = MyData(tensorData)
 dataloader = DataLoader(dataset=dataset, batch_size=bs, shuffle=True)
 
-print(normalizedVolume.shape)
+# print(normalizedVolume.shape)
 
-n_epochs = 2
+n_epochs = 10
 
 for i in range(n_epochs):
     net.train()

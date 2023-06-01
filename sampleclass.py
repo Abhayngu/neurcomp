@@ -22,14 +22,16 @@ class Network(nn.Module):
     
 class MyData(Dataset):
     def __init__(self, data):
-        self.data = data
+        self.x = torch.tensor(data[:, :3])
+        self.y = torch.tensor(data[:, 3])
 
     def __len__(self):
-        return torch.prod(torch.tensor([i for i in self.data.shape])).item()
+        return self.y.shape[0].item()
 
     def __getitem__(self, index):
-        x, y, z = torch.randint(low=0, high=150, size=(3, 1))
-        # x = x.item()
-        # y = y.item()
-        # z = z.item()
-        return torch.tensor([x.item(), y.item(), z.item()], dtype=torch.float), self.data[x, y, z]
+        # x, y, z = torch.randint(low=0, high=150, size=(3, 1))
+        # # x = x.item()
+        # # y = y.item()
+        # # z = z.item()
+        # return torch.tensor([x.item(), y.item(), z.item()], dtype=torch.float), self.data[x, y, z]
+        return self.x[index], self.y[index]

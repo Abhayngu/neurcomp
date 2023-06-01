@@ -20,23 +20,23 @@ resizeTensor = torch.tensor(resizeTensor, dtype=torch.float)
 predicted_volume = net(resizeTensor)
 print(predicted_volume)
 
-# ind = 0
-# arr = vtkFloatArray()
-# points = vtkPoints()
+ind = 0
+arr = vtkFloatArray()
+points = vtkPoints()
 
 
-# for i in range(150):
-#     for j in range(150):
-#         for k in range(150):
-#             cord = (i, j, k)
-#             arr.InsertNextValue(predicted_volume[ind])
-#             ind = ind + 1
+for i in range(150):
+    for j in range(150):
+        for k in range(150):
+            cord = (i, j, k)
+            arr.InsertNextValue(predicted_volume[ind])
+            ind = ind + 1
 
-# imageData = vtkImageData()
-# imageData.SetDimensions(150, 150, 150)
-# imageData.GetPointData().SetScalars(arr)
+imageData = vtkImageData()
+imageData.SetDimensions(150, 150, 150)
+imageData.GetPointData().SetScalars(arr)
 
-# writer = vtkXMLImageDataWriter()
-# writer.SetFileName("img.vti")
-# writer.SetInputData(imageData)
-# writer.Write()
+writer = vtkXMLImageDataWriter()
+writer.SetFileName("img.vti")
+writer.SetInputData(imageData)
+writer.Write()

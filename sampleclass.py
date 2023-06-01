@@ -26,7 +26,7 @@ class MyData(Dataset):
         self.y = torch.tensor(data[:, 3])
 
     def __len__(self):
-        return self.y.shape[0].item()
+        return torch.tensor(self.y.shape[0], dtype=torch.float)
 
     def __getitem__(self, index):
         # x, y, z = torch.randint(low=0, high=150, size=(3, 1))

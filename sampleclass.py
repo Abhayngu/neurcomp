@@ -7,31 +7,33 @@ class Network(nn.Module):
     def __init__(self, in_features, out_features, num_hidden_layers):
         super().__init__()
         self.layers = nn.ModuleList()
-        self.relu = nn.ReLU()
-        self.layers.append(nn.Linear(in_features, 16))
-        for i in range(num_hidden_layers):
-            self.layers.append(nn.Linear(16, 16))
-        self.layers.append(nn.Linear(16, out_features))
+        self.l1 = nn.Linear(in_features, 16)
+        self.relu1 = nn.ReLU()
+        self.l2 = nn.Linear(16, 16)
+        self.relu2 = nn.ReLU()
+        self.l3 = nn.Linear(16, 16)
+        self.relu3 = nn.ReLU()
+        self.l4 = nn.Linear(16, out_features)
+        
     
     def forward(self, input):
         out = input
-        for ndx,net_layer in enumerate(self.layers):
-            out = net_layer(out)
-            out = self.relu(out)
+        out = self.l1(out)
+        out = self.relu1(out)
+        out = self.l2(out)
+        out = self.relu2(out)
+        out = self.l3(out)
+        out = self.relu3(out)
+        out = self.l4(out)
         return out
     
 class MyData(Dataset):
     def __init__(self, data):
-        self.x = torch.tensor(data[:, :3])
-        self.y = torch.tensor(data[:, 3])
+        self.x = data[:, :3]
+        self.y = data[:, 3]
 
     def __len__(self):
-        return torch.tensor(self.y.shape[0], dtype=torch.float)
+        return len(self.y)
 
     def __getitem__(self, index):
-        # x, y, z = torch.randint(low=0, high=150, size=(3, 1))
-        # # x = x.item()
-        # # y = y.item()
-        # # z = z.item()
-        # return torch.tensor([x.item(), y.item(), z.item()], dtype=torch.float), self.data[x, y, z]
         return self.x[index], self.y[index]

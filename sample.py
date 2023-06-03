@@ -28,7 +28,7 @@ for i in range(150):
             vol2[ind] = [i, j, k, normalizedVolume[i, j, k]]
             ind = ind + 1
 tensorData = torch.from_numpy(vol2)
-tensorData = torch.tensor(tensorData, dtype=torch.float)
+tensorData = tensorData.to(torch.float)
 
 net = Network(3, 1, 3)
 print(net)
@@ -51,6 +51,7 @@ for i in range(n_epochs):
     for input, output in dataloader:
         #print(type(input))
         preds = net(input)
+        preds = preds.view(-1, 1)
         l = loss(output, preds)
         optimizer.zero_grad()
         train_loss += l
@@ -71,7 +72,7 @@ for i in range(150):
             resizedVol[ind] = [i, j, k]
             ind = ind + 1
 resizeTensor = torch.from_numpy(resizedVol)
-resizeTensor = torch.tensor(resizeTensor, dtype=torch.float)
+resizeTensor = resizeTensor.to(torch.float)
 
 
 

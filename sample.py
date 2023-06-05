@@ -40,7 +40,7 @@ dataloader = DataLoader(dataset=dataset, batch_size=bs, shuffle=True)
 
 # print(normalizedVolume.shape)
 
-n_epochs = 10
+n_epochs = 30
 
 for i in range(n_epochs):
     net.train()
@@ -52,6 +52,7 @@ for i in range(n_epochs):
         #print(type(input))
         preds = net(input)
         preds = preds.view(-1, 1)
+        print(preds)
         l = loss(output, preds)
         optimizer.zero_grad()
         train_loss += l
@@ -60,7 +61,7 @@ for i in range(n_epochs):
     
     end = time.time()
     
-    print(f"epoch: {i} train loss: {train_loss.item() / bs} time: {round(end - start, 2)}")
+    print(f"epoch: {i+1} train loss: {train_loss.item() / bs} time: {round(end - start, 2)}")
         
 net.eval()
 

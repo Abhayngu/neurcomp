@@ -91,29 +91,47 @@ if __name__=='__main__':
     net.train()
     print(net)
 
-    # optimization
+    # defining optimizer
     optimizer = optim.Adam(net.parameters(), lr=opt.lr, betas=(0.9, 0.999))
 
+    # defining loss criterion
     criterion = nn.MSELoss()
+
+    # setting device for optimizer
     if opt.cuda:
         criterion.cuda()
 
+    # Calculating number of parameters in the network
     num_net_params = 0
     for layer in net.parameters():
         num_net_params += layer.numel()
     print('number of network parameters:',num_net_params,'volume resolution:',volume.shape)
     print('compression ratio:',th.prod(th.tensor([val for val in volume.shape])).item()/num_net_params)
+
+    # Compression ratio we will achieve with the above number of parameters
     compression_ratio = th.prod(th.tensor([val for val in volume.shape])).item()/num_net_params
+
+    # Volume resolution
     vol_res = th.prod(th.tensor([val for val in volume.shape])).item()
 
+    # Fixing the seed 
     opt.manualSeed = random.randint(1, 10000)  # fix seed
     random.seed(opt.manualSeed)
+
+    # Setting the manual_seed in the torch
     th.manual_seed(opt.manualSeed)
 
     def create_data_loading():
+        # Normalized volume
         new_vol = volume
+
+        # Volume resolution
         v_res = new_vol.shape[0]*new_vol.shape[1]*new_vol.shape[2]
+
+        # Create torch Dataset 
         dataset = VolumeDataset(new_vol,opt.oversample)
+
+        # Setting min and max indices for all the dimension and the resolution
         if opt.cuda:
             global_min_bb = dataset.min_bb.cuda()
             global_max_bb = dataset.max_bb.cuda()
@@ -133,41 +151,76 @@ if __name__=='__main__':
     tick = time.time()
     first_tick = time.time()
 
+    # v -> volume
+    # v_res -> volume resolution
+    # global_min_bb -> min indices which can be accessed in all the dimensions
+    # global_max_bb -> max indices which can be accessed in all the dimensions
+    # dataset -> torch dataset
     v,v_res,global_min_bb,global_max_bb,dataset = create_data_loading()
+
+    # Creating dataloader for our data
+    # shuffle will shuffle the entries in a batch
     data_loader = DataLoader(dataset, batch_size=opt.batchSize, shuffle=True, num_workers=int(opt.num_workers))
 
     while True:
+
+        # Lossed list
         all_losses = []
+
+        # epoch starting time
         epoch_tick = time.time()
 
+        print('check -> ', len(data_loader))
+        # Iterating over data
         for bdx, data in enumerate(data_loader):
+
+            # increasing iteration number by 1
             n_iter+=1
 
+            # getting raw_position and normalized positions
             raw_positions, positions = data
+
+            # Setting cuda if available
             if opt.cuda:
                 raw_positions = raw_positions.cuda()
                 positions = positions.cuda()
-            #
 
+            # Setting up the shape of both the positions 
             raw_positions = raw_positions.view(-1,3)
             positions = positions.view(-1,3)
+            # print(positions)
+            # print(positions.shape)
+            # break
+            # print('check -> ', raw_positions.shape)
+
+            # For gradient regularization in every 100th data batch out of (150*150*150)/1024
+            # 1024 is the batch size 
             if opt.grad_lambda > 0 or bdx%100==0:
                 positions.requires_grad = True
 
             # --- in practice, since we only sample values at grid points, this is not really performing interpolation; but, the option is there...
             field = trilinear_f_interpolation(raw_positions,v,global_min_bb,global_max_bb,v_res)
+            # print('----------start--------------')
+            # print('raw_positions : ', raw_positions.shape)
+            # print('normalized_positions : ', positions.shape)
+            # print('field : ', field.shape)
+            # print('----------end----------------')
 
-            # predicted volume
+            # making gradient calc 0
             net.zero_grad()
+
+            # predicting positions
             predicted_vol = net(positions)
+
+            # squeezing predicted vol
             predicted_vol = predicted_vol.squeeze(-1)
 
+            # For gradient
             if opt.grad_lambda > 0:
                 target_grad = finite_difference_trilinear_grad(raw_positions,v,global_min_bb,global_max_bb,v_res,scale=dataset.scales)
                 ones = th.ones_like(predicted_vol)
                 vol_grad = th.autograd.grad(outputs=predicted_vol, inputs=positions, grad_outputs=ones, retain_graph=True, create_graph=True, allow_unused=False)[0]
                 grad_loss = criterion(vol_grad,target_grad)
-            #
 
             n_prior_volume_passes = int(n_seen/vol_res)
 
@@ -207,7 +260,7 @@ if __name__=='__main__':
             if (n_current_volume_passes+1)==opt.n_passes:
                 break
         #
-
+        break
         if (n_current_volume_passes+1)==opt.n_passes:
             break
 
@@ -216,26 +269,26 @@ if __name__=='__main__':
 
     last_tock = time.time()
 
-    if opt.vol_debug:
-        tiled_net_out(dataset, net, opt.cuda, gt_vol=volume, evaluate=True, write_vols=True)
-    th.save(net.state_dict(), opt.network)
+    # if opt.vol_debug:
+    #     tiled_net_out(dataset, net, opt.cuda, gt_vol=volume, evaluate=True, write_vols=True)
+    # th.save(net.state_dict(), opt.network)
 
-    total_time = last_tock-first_tick
-    config = {}
-    config['grad_lambda'] = opt.grad_lambda
-    config['n_layers'] = opt.n_layers
-    config['layers'] = opt.layers
-    config['w0'] = opt.w0
-    config['compression_ratio'] = opt.compression_ratio
-    config['batchSize'] = opt.batchSize
-    config['oversample'] = opt.oversample
-    config['lr'] = opt.lr
-    config['n_passes'] = opt.n_passes
-    config['pass_decay'] = opt.pass_decay
-    config['lr_decay'] = opt.lr_decay
-    config['is_residual'] = opt.is_residual
-    config['is_cuda'] = opt.cuda
-    config['time'] = total_time
+    # total_time = last_tock-first_tick
+    # config = {}
+    # config['grad_lambda'] = opt.grad_lambda
+    # config['n_layers'] = opt.n_layers
+    # config['layers'] = opt.layers
+    # config['w0'] = opt.w0
+    # config['compression_ratio'] = opt.compression_ratio
+    # config['batchSize'] = opt.batchSize
+    # config['oversample'] = opt.oversample
+    # config['lr'] = opt.lr
+    # config['n_passes'] = opt.n_passes
+    # config['pass_decay'] = opt.pass_decay
+    # config['lr_decay'] = opt.lr_decay
+    # config['is_residual'] = opt.is_residual
+    # config['is_cuda'] = opt.cuda
+    # config['time'] = total_time
 
-    json.dump(config, open(opt.config,'w'))
+    # json.dump(config, open(opt.config,'w'))
 #

@@ -47,15 +47,16 @@ class VolumeDataset(Dataset):
         self.scales = self.diag/self.max_dim
         #self.scales = th.ones(3)
 
-        # Tile sampling
+        # Tile sampling (making coordinates of shape [150, 150, 150, 3])
         self.lattice = self.tile_sampling(self.min_bb,self.max_bb,res=self.vol_res,normalize=False)
-
-        # Linear Tile sampling
+        # Linear Tile sampling (making the above coordinates linear [150*150*150, 3])
         self.full_tiling = self.tile_sampling(self.min_bb,self.max_bb,res=self.vol_res,normalize=False).view(-1,3)
-
+        # print(self.full_tiling)
+        self.normalized_tiling = ( (self.full_tiling - self.min_bb.unsqueeze(0)) / (self.max_bb-self.min_bb).unsqueeze(0) ) 
         # Total number of voxels from the linear tiling
         self.actual_voxels = self.full_tiling.shape[0]
-
+        # print(self.full_tiling)
+        # print(self.normalized_tiling)
         # Setting oversample
         self.oversample = oversample
     #
@@ -63,14 +64,19 @@ class VolumeDataset(Dataset):
     def tile_sampling(self, sub_min_bb, sub_max_bb, res=None, normalize=True):
         if res is None:
             res = th.tensor([self.tile_res,self.tile_res,self.tile_res],dtype=th.int)
+
+        # making a new tensor to have coordinates
         positional_data = th.zeros(res[0],res[1],res[2],3)
 
+        # getting start and end for all the dimension
         start = sub_min_bb / (self.max_bb-self.min_bb) if normalize else sub_min_bb
         end = sub_max_bb / (self.max_bb-self.min_bb) if normalize else sub_max_bb
+        # Making data using linspace
         positional_data[:,:,:,0] = th.linspace(start[0],end[0],res[0],dtype=th.float).view(res[0],1,1)
         positional_data[:,:,:,1] = th.linspace(start[1],end[1],res[1],dtype=th.float).view(1,res[1],1)
         positional_data[:,:,:,2] = th.linspace(start[2],end[2],res[2],dtype=th.float).view(1,1,res[2])
 
+        # returning data
         return 2.0*positional_data - 1.0 if normalize else positional_data
     #
 
@@ -87,7 +93,12 @@ class VolumeDataset(Dataset):
     def __getitem__(self, index):
         random_positions = self.full_tiling[th.randint(self.actual_voxels,(self.oversample,))]
         normalized_positions = 2.0 * ( (random_positions - self.min_bb.unsqueeze(0)) / (self.max_bb-self.min_bb).unsqueeze(0) ) - 1.0
+        # print('random : ',  random_positions, 'normalized : ', normalized_positions)
+        # print()
+
         normalized_positions = self.scales.unsqueeze(0)*normalized_positions
+        # print(random_positions[0])
+        # print(normalized_positions[0])
         return random_positions, normalized_positions
     #
 #

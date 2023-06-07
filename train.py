@@ -188,7 +188,7 @@ if __name__=='__main__':
             # Setting up the shape of both the positions 
             raw_positions = raw_positions.view(-1,3)
             positions = positions.view(-1,3)
-            # print(positions)
+            print(raw_positions)
             # print(positions.shape)
             # break
             # print('check -> ', raw_positions.shape)
@@ -269,8 +269,8 @@ if __name__=='__main__':
 
     last_tock = time.time()
 
-    # if opt.vol_debug:
-    #     tiled_net_out(dataset, net, opt.cuda, gt_vol=volume, evaluate=True, write_vols=True)
+    if opt.vol_debug:
+        tiled_net_out(dataset, net, opt.cuda, gt_vol=volume, evaluate=True, write_vols=True)
     # th.save(net.state_dict(), opt.network)
 
     # total_time = last_tock-first_tick

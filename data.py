@@ -51,7 +51,7 @@ class VolumeDataset(Dataset):
         self.lattice = self.tile_sampling(self.min_bb,self.max_bb,res=self.vol_res,normalize=False)
         # Linear Tile sampling (making the above coordinates linear [150*150*150, 3])
         self.full_tiling = self.tile_sampling(self.min_bb,self.max_bb,res=self.vol_res,normalize=False).view(-1,3)
-        # print(self.full_tiling)
+        # print(self.full_tiling.shape)
         self.normalized_tiling = ( (self.full_tiling - self.min_bb.unsqueeze(0)) / (self.max_bb-self.min_bb).unsqueeze(0) ) 
         # Total number of voxels from the linear tiling
         self.actual_voxels = self.full_tiling.shape[0]

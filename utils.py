@@ -87,7 +87,9 @@ def field_from_net(dataset, net, is_cuda, tiled_res=32, verbose=False):
 
 def tiled_net_out(dataset, net, is_cuda, gt_vol=None, evaluate=True, write_vols=False, filename='vol'):
     net.eval()
-    full_vol = field_from_net(dataset, net, is_cuda, tiled_res=32)
+    # full_vol = field_from_net(dataset, net, is_cuda, tiled_res=32)
+    full_vol = net(dataset.full_tiling).squeeze(-1)
+    full_vol = full_vol.reshape(150, 150, 150)
     psnr = 0
     print('writing to VTK...')
     if evaluate and gt_vol is not None:

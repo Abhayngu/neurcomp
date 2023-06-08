@@ -130,6 +130,7 @@ if __name__=='__main__':
 
         # Create torch Dataset 
         dataset = VolumeDataset(new_vol,opt.oversample)
+        print('check ->', dataset.full_tiling.shape)
 
         # Setting min and max indices for all the dimension and the resolution
         if opt.cuda:
@@ -188,7 +189,7 @@ if __name__=='__main__':
             # Setting up the shape of both the positions 
             raw_positions = raw_positions.view(-1,3)
             positions = positions.view(-1,3)
-            print(raw_positions)
+            # print(raw_positions)
             # print(positions.shape)
             # break
             # print('check -> ', raw_positions.shape)
